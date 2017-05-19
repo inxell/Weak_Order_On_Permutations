@@ -36,6 +36,12 @@ void print_vec(const vector<long double>& vec) {
 }
 
 vector<int> invs_to_permut(vector<short> & invs) {
+	/*
+	Convert vector of inversions to permutation.
+	For example, invs = [0, 1, 0, 3, 2] maps to 
+	the permutation permut = [4, 2, 5, 1, 3].
+	Note that invs[i] denotes #{ k < i : permut[k] > permut[i]}.
+	*/
 	vector<int> res{ 1 };
 	for (short i = 1; i < invs.size(); ++i) {
 		short k = i + 1 - invs[i];
@@ -50,10 +56,19 @@ vector<int> invs_to_permut(vector<short> & invs) {
 class Permutation {
 public:
 	vector<short> invs;
+	/*
+	invs is a vector with contains the information of the pairs of inversions 
+	which determines the true value of the permutation. Specifically, if
+	(i, j) is a pair of inversions for the permutation permut, i.e., i < j and
+	permut[i] > permut[j], we have invs[i-1] & (1 << j-1) == 1.
+	*/
 	short len;
+	// len is the size of the permutation.
 	unsigned cnt_invs = 0;
+	// cnt_invs is the number of inversions of the permutation.
 
 	Permutation(short n) : len(n) {
+		// construct the identity permutation of size n.
 		if (n > 16) {
 			cout << "Size Overflow!" << endl;
 		}
@@ -62,6 +77,7 @@ public:
 	}
 
 	Permutation(const vector<short>& vec) : invs(vec) {
+		// construct the permutation with the given vector denotes the pairs of inversions.
 		len = vec.size();
 		unsigned tmp = 0;
 		for (int i = 0; i < len; ++i) {
@@ -76,6 +92,7 @@ public:
 	}
 
 	Permutation(const vector<int>& vec) {
+		// construct the permutation from vector denoting a permutation.
 		if (vec.size() > 16) {
 			cout << "Size Overflow!" << endl;
 			return;
@@ -101,6 +118,7 @@ public:
 	}
 
 	vector<int> get_value() const {
+		// return the permutation as a vector.
 		vector<short> tmp(len, 0);
 		for (short i = 0; i < len; ++i) {
 			short val = invs[i];
@@ -114,6 +132,7 @@ public:
 	}
 
 	string get_string() const {
+		// return the permutation as a string.
 		vector<int> tmp = get_value();
 		string res;
 		for (int i : tmp) {
@@ -123,6 +142,7 @@ public:
 	}
 
 	Permutation inverse() const {
+		// return the inverse of the permutation.
 		vector<int> tmp = get_value();
 		vector<int> res(len, 0);
 		for (int i = 0; i < len; ++i) {
@@ -132,6 +152,7 @@ public:
 	}
 
 	Permutation reversal() const {
+		// return the reversal of the permutation.
 		vector<int> tmp = get_value();
 		reverse(tmp.begin(), tmp.end());
 		return Permutation(tmp);
@@ -141,14 +162,6 @@ public:
 };
 
 
-bool weak_order_le(const vector<int>& a, const vector<int>& b) {
-	for (int i = 0; i < a.size(); ++i) {
-		for (int j = i + 1; j < a.size(); ++j) {
-			if (a[i] > a[j] && b[i] < b[j]) return false;
-		}
-	}
-	return true;
-}
 
 bool weak_order_less(const Permutation& a, const Permutation& b) {
 	for (short i = 0; i < a.len; ++i) {
@@ -157,6 +170,47 @@ bool weak_order_less(const Permutation& a, const Permutation& b) {
 	return true;
 }
 
+Permutation join(const Permutation& a, const Permutation& b) {
+	if (a.len != b.len) {
+		cout << "Permutations are of different size!" << endl;
+		return Permutation(0);
+	}
+	short n = a.len;
+	vector<short> invs(n, 0);
+	for (short i = n - 2; i >= 0; --i) {
+		short k = a.invs[i] | b.invs[i];
+		for (short j = n - 2; j > i; --j) {
+			if (k & (1 << j)) {
+				k |= invs[j];
+			}
+		}
+		invs[i] = k;
+	}
+	return Permutation(invs);
+}
+
+Permutation meet(const Permutation& a, const Permutation& b) {
+	vector<int> aa = a.get_value(), bb = b.get_value();
+	reverse(aa.begin(), aa.end());
+	reverse(bb.begin(), bb.end());
+	return join(Permutation(aa), Permutation(bb)).reversal();
+}
+
+
+/*
+From this below, we code the permutation in a conventional way as a vector of integers.
+This way support permutation with larger size. As a trade-off, it is more memory consuming and 
+less efficient when checking whether two permutations are comparable in terms of weak order.
+*/
+
+bool weak_order_less(const vector<int>& a, const vector<int>& b) {
+	for (int i = 0; i < a.size(); ++i) {
+		for (int j = i + 1; j < a.size(); ++j) {
+			if (a[i] > a[j] && b[i] < b[j]) return false;
+		}
+	}
+	return true;
+}
 
 vector<unordered_set<int>> permut_to_pairs(vector<int> p) {
 	vector<unordered_set<int>> res(p.size());
@@ -184,7 +238,6 @@ vector<int> reversal(vector<int> p) {
 }
 
 
-
 vector<int> invs_to_permut(const vector<int>& vec, vector<unordered_set<int>>& pairs) {
 	vector<int> res;
 	int n = vec.size();
@@ -200,7 +253,6 @@ vector<int> invs_to_permut(const vector<int>& vec, vector<unordered_set<int>>& p
 	}
 	return res;
 }
-
 
 
 void transitive_closure(vector<unordered_set<int>>& pairs) {
@@ -245,33 +297,6 @@ vector<int> pairs_to_permut(const vector<unordered_set<int>>& pairs) {
 }
 
 
-Permutation join(const Permutation& a, const Permutation& b) {
-	if (a.len != b.len) {
-		cout << "Permutations are of different size!" << endl;
-		return Permutation(0);
-	}
-	short n = a.len;
-	vector<short> invs(n, 0);
-	for (short i = n - 2; i >= 0; --i) {
-		short k = a.invs[i] | b.invs[i];
-		for (short j = n - 2; j > i; --j) {
-			if (k & (1 << j)) {
-				k |= invs[j];
-			}
-		}
-		invs[i] = k;
-	}
-	return Permutation(invs);
-}
-
-Permutation meet(const Permutation& a, const Permutation& b) {
-	vector<int> aa = a.get_value(), bb = b.get_value();
-	reverse(aa.begin(), aa.end());
-	reverse(bb.begin(), bb.end());
-	return join(Permutation(aa), Permutation(bb)).reversal();
-}
-
-
 
 class PermutGen {
 public:
@@ -300,7 +325,12 @@ private:
 };
 
 
+// The alterative implementation of permutation and weak order ends here.
+
+
+
 vector<int> inverse(const vector<int>& a) {
+	// return the inverse of the permutation a.
 	vector<int> res(a.size(), 0);
 	for (int i = 0; i < a.size(); ++i) {
 		res[a[i] - 1] = i + 1;
@@ -310,6 +340,7 @@ vector<int> inverse(const vector<int>& a) {
 
 
 struct TreeNode {
+	// children are greater than their parents in terms of weak order.
 	vector<TreeNode*> children;
 	Permutation* val = nullptr;
 	TreeNode(Permutation* ptr): val(ptr) {}
@@ -318,12 +349,21 @@ struct TreeNode {
 
 class Diagram {
 public:
+	// len denotes the size of the permutation.
 	int len = 0;
+	// root will be the identity in S_n.
 	TreeNode* root = nullptr;
+	// graph will point to the private data member visited.
 	const map<string, TreeNode*>* graph = nullptr;
 
 
 	Diagram(short n) {
+		/*
+		Construct the diagram of S_n under weak order.
+		n should be no greater than 16. Practically, n should be less then 8.
+		When n == 10, the Diagram will consume 2GB rams and it takes one hour to 
+		generate the diagram on my laptop with CPU i5-6300U.
+		*/
 		if (n <= 0 || n > 16) {
 			cout << "Invalid value of n" << endl;
 			return;
@@ -366,19 +406,16 @@ public:
 		}
 
 		graph = &visited;
-		/*
-		int factorial = 1;
-		for (int i = 1; i <= n; ++i) {
-			factorial *= i;
-		}
-		if (factorial != visited.size()) {
-			cout << factorial << ' ' << visited.size() << endl;
-			cout << "Something Wrong!" << endl;
-		}
-		*/
 	}
 
 	vector<short> increasing_set_inv_count(vector<string>& permutations) const {
+		/*
+		return the count of permutations with different number of inversions
+		within the increasing set generated by those permutations within the input.
+		For example, if the return value is [0, 1, 2, 1], it means that the increasing
+		set contains one permutation with 1 inversion, two with 2 inversions and one
+		with 3 inversions.
+		*/
 		unordered_set<TreeNode*> record;
 		for (string p : permutations) {
 			if (visited.find(p) == visited.end()) {
@@ -414,6 +451,8 @@ public:
 	}
 
 	vector<vector<string>> independent_sets() {
+		// generate all the independent sets under weak order.
+		// It is impractical on a laptop when n >= 5.
 		vector<string> sn;
 		for (auto it = visited.begin(); it != visited.end(); ++it) {
 			sn.push_back(it->first);
@@ -452,6 +491,7 @@ private:
 
 
 long double partition_function(int n, long double q) {
+	// return the normalizer of the Mallow measure on S_n with parameter q.
 	vector<long double> record{ 1 };
 	long double power = 1, res = 1;
 	for (int i = 1; i < n; ++i) {
@@ -462,7 +502,9 @@ long double partition_function(int n, long double q) {
 	return res;
 }
 
+
 long double mallows_measure_of_increasing_set(int n, vector<short>& invs, long double q) {
+	// Here the invs should be the value returned by the method increasing_set_inv_count of Diagram.
 	long double power = 1;
 	long double res = 0;
 	for (int i = 0; i < invs.size(); ++i) {
@@ -475,6 +517,7 @@ long double mallows_measure_of_increasing_set(int n, vector<short>& invs, long d
 
 int main() {
 	/*
+	// some test code to the class Permutation based on the two different implementation of permutation
 	PermutGen per;
 	short n = 15;
 	int i1, i2, i3, i4;
@@ -529,15 +572,16 @@ int main() {
 		cout << pp1.cnt_invs << ' ' << pp2.cnt_invs << ' ' << jj.cnt_invs << ' ' << m.cnt_invs << endl;
 	}
 	*/
-	short n = 5;
+
+	short n = 4;
 	int cnt = 0;
-	vector<long double> parameters{0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999, 0.9999, 0.999999, 0.9999999, 1, 1.0000001, 1.000001, 1.00001, 1.0001, 1.001, 1.01, 1.02, 1.06, 1.1};
+	vector<long double> parameters{0.1, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999, 0.9999, 0.999999, 0.9999999, 1, 1.0000001, 1.000001, 1.00001, 1.0001, 1.001, 1.01, 1.02, 1.06, 1.1, 2};
 	Diagram d = Diagram(n);
 	vector<string> sn;
 	for (auto it = d.graph->cbegin(); it != d.graph->cend(); ++it) {
 		sn.push_back(it->first);
 	}
-	reverse(sn.begin(), sn.end());
+	//reverse(sn.begin(), sn.end());
 	vector<vector<string>> res;
 	for (string p : sn) {
 		TreeNode* node_p = d.graph->at(p);
@@ -577,6 +621,7 @@ int main() {
 				print_vec(probabilities);
 				cout << endl;
 			};
+			cout << boo;
 			if (cnt % 10000 == 0) cout << cnt/10000 << ' ';
 		}
 	}
@@ -586,57 +631,3 @@ int main() {
 	cout << "Bingo!" << endl;
 	system("pause");
 }
-
-
-/*
-int main() {
-	Permutation per;
-	int n = 25;
-	for (int ii = 0; ii < 10; ++ii) {
-		vector<int> invs, p1, p2, p3, p4, rp1, rp2;
-		int i1, i2, i3, i4;
-		vector<unordered_set<int>> pairs1, pairs2, pairs3(n), pairs4(n);
-		p1 = per.gen(n, pairs1);
-		p2 = per.gen(n, pairs2);
-		i1 = pairs_to_count_of_invs(pairs1);
-		i2 = pairs_to_count_of_invs(pairs2);
-		for (int i = 0; i < n; ++i) {
-			for(int j : pairs1[i]) {
-				pairs3[i].insert(j);
-			}
-			for (int j : pairs2[i]) {
-				pairs3[i].insert(j);
-			}
-		}
-		transitive_closure(pairs3);
-		i3 = pairs_to_count_of_invs(pairs3);
-		p3 = pairs_to_permut(pairs3);
-		//find the meet of p1 and p2
-		rp1 = reversal(p1);
-		rp2 = reversal(p2);
-		pairs4 = permut_to_pairs(rp1);
-		auto tmp = permut_to_pairs(rp2);
-		for (int i = 0; i < n; ++i) {
-			for (int j : tmp[i]) {
-				pairs4[i].insert(j);
-			}
-		}
-		transitive_closure(pairs4);
-		i4 = n*(n-1)/2 - pairs_to_count_of_invs(pairs4);
-		p4 = reversal(pairs_to_permut(pairs4));
-		print_vec(p3);
-		print_vec(p1);
-		print_vec(p2);
-		print_vec(p4);
-		cout << i1 << ' ' << i2 << ' ' << i1 + i2 << endl;
-		cout << i3 << ' ' << i4 << ' ' << i3 + i4 << endl;
-		if (weak_order_less(p1, p3) && weak_order_less(p2, p3) && weak_order_less(p4, p1) && weak_order_less(p4, p2)) {
-			cout << "Bingo!" << endl;
-		}
-		cout << endl;
-	}
-
-	cout << "Hello world" << endl;
-	system("pause");
-}
-*/
